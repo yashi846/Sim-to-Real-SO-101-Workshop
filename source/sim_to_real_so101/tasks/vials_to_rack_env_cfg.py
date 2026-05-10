@@ -66,24 +66,33 @@ manipulation_object_base = RigidObjectCfg(
 # vial.spawn.rigid_props = sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0)
 
 
-rack = manipulation_object_base.replace()
-rack.prim_path = "{ENV_REGEX_NS}/VialRack"
-rack.spawn.usd_path = f"{assets_path}/usd/Vial_rack_simple.usda"
-rack.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.2)
+# rack = manipulation_object_base.replace()
+# rack.prim_path = "{ENV_REGEX_NS}/VialRack"
+# rack.spawn.usd_path = f"{assets_path}/usd/Vial_rack_simple.usda"
+# rack.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.2)
 
 # vial.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.02)
 # vial.spawn.rigid_props = sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0)
 # VIAL_SPAWN_Z = 0.05
 
+# 消しゴムの定義
 box = manipulation_object_base.replace()
 box.spawn = sim_utils.CuboidCfg(
     size=(0.065, 0.022, 0.011),  # 6.5 cm x 2.2 cm x 1.1 cm
-    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 1.0)), 
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 1.0)),
     collision_props=sim_utils.CollisionPropertiesCfg(),
     mass_props=sim_utils.MassPropertiesCfg(mass=0.0198),
-    rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+    rigid_props=sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0),
 )
 BOX_SPAWN_Z = 0.05
+
+# 箱の定義
+container = manipulation_object_base.replace()
+container.spawn = sim_utils.UsdFileCfg(
+    usd_path=f"{assets_path}/usd/container.usda",
+    mass_props=sim_utils.MassPropertiesCfg(mass=0.0515),  # 51.5 g
+    rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+)
 
 
 @configclass
@@ -113,10 +122,14 @@ class VialsToRackSceneCfg(SO101TaskSceneCfg):
     target_box.init_state.pos = (0.23, 0.0, BOX_SPAWN_Z)
     target_box.init_state.rot = euler_angles_to_quat(np.array([0, 0, 0]), degrees=True)
 
-    
-    rack_left = rack.replace()
-    rack_left.prim_path = "{ENV_REGEX_NS}/Rack_Left"
-    rack_left.init_state.pos = (0.18, 0.08, 0.06)
+    # rack_left = rack.replace()
+    # rack_left.prim_path = "{ENV_REGEX_NS}/Rack_Left"
+    # rack_left.init_state.pos = (0.18, 0.08, 0.06)
+
+    rack_left = container.replace()
+    rack_left.prim_path = "{ENV_REGEX_NS}/Container"
+    # Place the rack roughly next to the eraser (target_box at x=0.23, y=0.0)
+    rack_left.init_state.pos = (0.23, 0.12, 0.06)
 
     # Contact sensor on gripper jaw to detect vial grasping
     contact_grasp = ContactSensorCfg(
@@ -124,9 +137,7 @@ class VialsToRackSceneCfg(SO101TaskSceneCfg):
         update_period=0.0,
         history_length=1,
         debug_vis=False,
-        filter_prim_paths_expr=[
-            "{ENV_REGEX_NS}/TargetBox"
-        ],
+        filter_prim_paths_expr=["{ENV_REGEX_NS}/TargetBox"],
     )
 
 
@@ -176,7 +187,6 @@ class VialsToRackEventCfg(TaskEventCfg):
 
 @configclass
 class VialsToRackEventDRCfg(VialsToRackEventCfg):
-
     reset_set_robot_visual_material = EventTerm(
         func=randomize_robot_color,
         mode="reset",
@@ -233,17 +243,13 @@ class VialsToRackObservationsCfg(TaskObservationsCfg):
                 # "vials": ["vial_1", "vial_2", "vial_3"],
                 "vials": ["target_box"],
                 "rack_name": "rack_left",
-                "warmup_steps": 30,
-                "grasp_history_window": 20,
-                "force_threshold": 2,  # N
-                # Rack local dimensions from Vial_rack_simple.usda extent
-                "rack_local_x_min": 0.0,
-                "rack_local_x_max": 0.12,
-                "rack_local_y_min": 0.0,
-                "rack_local_y_max": 0.12,
-                # Slot entry at local z=0.1; vial center must be below this
-                "rack_local_z_max": 0.1,
-                # abs(vial_up_z) must exceed this (vial is vertical, not on its side)
+                # 箱のサイズ (14.5 x 12) に合わせた範囲
+                "rack_local_x_min": -0.0725,  # 中心から半分
+                "rack_local_x_max": 0.0725,
+                "rack_local_y_min": -0.06,
+                "rack_local_y_max": 0.06,
+                # 高さ 5.5cm の 2/3 (約 3.66cm) を上限とする
+                "rack_local_z_max": 0.0366,
                 "vertical_threshold": 0.7,
             },
         )
@@ -272,18 +278,16 @@ class VialsToRackTerminationsCfg:
             # "vials": ["vial_1", "vial_2", "vial_3"],
             "vials": ["target_box"],
             "rack_name": "rack_left",
-            "warmup_steps": 30,
-            "grasp_history_window": 20,
-            "force_threshold": 2,  # N
-            "rack_local_x_min": 0.0,
-            "rack_local_x_max": 0.12,
-            "rack_local_y_min": 0.0,
-            "rack_local_y_max": 0.12,
-            "rack_local_z_max": 0.1,
+            # 箱のサイズ (14.5 x 12) に合わせた範囲
+            "rack_local_x_min": -0.0725,  # 中心から半分
+            "rack_local_x_max": 0.0725,
+            "rack_local_y_min": -0.06,
+            "rack_local_y_max": 0.06,
+            # 高さ 5.5cm の 2/3 (約 3.66cm) を上限とする
+            "rack_local_z_max": 0.0366,
             "vertical_threshold": 0.7,
         },
     )
-
 
 
 @configclass
@@ -291,6 +295,7 @@ class VialsToRackEnvCfg(SO101TaskEnvCfg):
     """
     Base config.
     """
+
     scene: VialsToRackSceneCfg = VialsToRackSceneCfg()
     events: VialsToRackEventCfg = VialsToRackEventCfg()
     observations: VialsToRackObservationsCfg = VialsToRackObservationsCfg()
@@ -301,9 +306,9 @@ class VialsToRackDREnvCfg(VialsToRackEnvCfg):
     """
     Domain Randomization config.
     """
+
     scene: VialsToRackDRSceneCfg = VialsToRackDRSceneCfg()
     events: VialsToRackEventDRCfg = VialsToRackEventDRCfg()
-
 
 
 @configclass
@@ -311,6 +316,7 @@ class VialsToRackEvalEnvCfg(VialsToRackEnvCfg):
     """
     Eval config.
     """
+
     terminations: VialsToRackTerminationsCfg = VialsToRackTerminationsCfg()
 
     def __post_init__(self) -> None:
@@ -323,6 +329,7 @@ class VialsToRackEvalDREnvCfg(VialsToRackDREnvCfg):
     """
     Eval config with Domain Randomization.
     """
+
     terminations: VialsToRackTerminationsCfg = VialsToRackTerminationsCfg()
 
     def __post_init__(self) -> None:

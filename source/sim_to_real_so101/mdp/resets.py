@@ -315,6 +315,73 @@ def random_asset_pose(
     return positions, orientations
 
 
+# def reset_vials_rack(
+#         env,
+#         env_ids: torch.Tensor,
+#         vials: list[str],
+#         rack: str,
+#         rack_pose_range: dict[str, tuple[float, float]],
+#         pose_range: dict[str, tuple[float, float]],
+#         fixed_vial_z: float,
+#         rack_placement_prob: float = 0.33,
+# ):
+
+#     vial_objects: list[RigidObject | Articulation] = [
+#         env.scene[asset_name] for asset_name in vials
+#     ]
+
+#     rack = env.scene[rack]
+#     slots_xform_view = XFormPrim(prim_paths_expr=f"{rack.cfg.prim_path}/Body1/Mesh/top_*")
+#     total_slots = len(slots_xform_view.prims)
+
+#     # randomize rack pose
+#     new_rack_positions, new_rack_orientations = random_asset_pose(env, env_ids, rack, rack_pose_range, {})
+#     # Clear velocities immediately after positioning
+#     zero_velocity = torch.zeros((len(env_ids), 6), device=rack.device)
+#     rack.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+
+#     placed_on_rack_indices = []
+#     if torch.rand(1, device=env.unwrapped.device).item() < rack_placement_prob:
+#         # Pick a random vial to place on the rack
+#         vial_idx = torch.randint(0, len(vial_objects), (1,), device=env.unwrapped.device).item()
+#         placed_on_rack_indices.append(vial_idx)
+    
+#     slot_positions_local, slot_orientations_local = slots_xform_view.get_local_poses()
+#     # Place selected vials on rack
+#     for vial_idx in placed_on_rack_indices:
+#         vial = vial_objects[vial_idx]
+        
+#         # Select a random slot for this vial
+#         slot_idx = torch.randint(0, total_slots, (1,), device=env.unwrapped.device).item()
+        
+#         # Thank you Sonnet lol
+#         # IMPORTANT: Cannot use get_world_poses() here because write_root_pose_to_sim() doesn't
+#         # update USD until sim.step(). Instead, manually compute slot positions from local transforms.
+#         # Transform slot positions from rack local frame to world frame using the NEW rack pose
+#         # For each environment, we need to transform the slot position
+#         slot_position_local = slot_positions_local[slot_idx].unsqueeze(0).repeat(len(env_ids), 1)
+#         slot_orientation_local = slot_orientations_local[slot_idx].unsqueeze(0).repeat(len(env_ids), 1)
+        
+#         # Combine transforms: world_pose = rack_pose ⊕ slot_local_pose
+#         slot_position, slot_orientation = math_utils.combine_frame_transforms(
+#             new_rack_positions, new_rack_orientations, slot_position_local, slot_orientation_local
+#         )
+#         # slot_position and slot_orientation are already per-env tensors (shape: len(env_ids), 3/4)
+#         slot_pose = torch.cat([slot_position, slot_orientation], dim=-1)
+#         vial.write_root_pose_to_sim(slot_pose, env_ids=env_ids)
+
+#         zero_velocity = torch.zeros((len(env_ids), 6), device=vial.device)
+#         vial.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+
+#     pose_range_z_fixed = {**pose_range, "z": (0.0, 0.0)}
+#     for i, v in enumerate(vial_objects):
+#         if i not in placed_on_rack_indices:
+#             default_z = v.data.default_root_state[env_ids[0], 2].item()
+#             pos_offset = {"z": fixed_vial_z - default_z}
+#             _, _ = random_asset_pose(env, env_ids, v, pose_range_z_fixed, pos_offset)
+#             zero_velocity = torch.zeros((len(env_ids), 6), device=v.device)
+#             v.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+
 def reset_vials_rack(
         env,
         env_ids: torch.Tensor,
@@ -323,7 +390,7 @@ def reset_vials_rack(
         rack_pose_range: dict[str, tuple[float, float]],
         pose_range: dict[str, tuple[float, float]],
         fixed_vial_z: float,
-        rack_placement_prob: float = 0.33,
+        rack_placement_prob: float = 0.33,  # この変数は使わなくなりますが、引数としては残しておきます
 ):
 
     vial_objects: list[RigidObject | Articulation] = [
@@ -331,53 +398,18 @@ def reset_vials_rack(
     ]
 
     rack = env.scene[rack]
-    slots_xform_view = XFormPrim(prim_paths_expr=f"{rack.cfg.prim_path}/Body1/Mesh/top_*")
-    total_slots = len(slots_xform_view.prims)
-
-    # randomize rack pose
+    
+    # 1. 容器（ラック/箱）のポーズをランダム化
     new_rack_positions, new_rack_orientations = random_asset_pose(env, env_ids, rack, rack_pose_range, {})
-    # Clear velocities immediately after positioning
     zero_velocity = torch.zeros((len(env_ids), 6), device=rack.device)
     rack.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
 
-    placed_on_rack_indices = []
-    if torch.rand(1, device=env.unwrapped.device).item() < rack_placement_prob:
-        # Pick a random vial to place on the rack
-        vial_idx = torch.randint(0, len(vial_objects), (1,), device=env.unwrapped.device).item()
-        placed_on_rack_indices.append(vial_idx)
-    
-    slot_positions_local, slot_orientations_local = slots_xform_view.get_local_poses()
-    # Place selected vials on rack
-    for vial_idx in placed_on_rack_indices:
-        vial = vial_objects[vial_idx]
-        
-        # Select a random slot for this vial
-        slot_idx = torch.randint(0, total_slots, (1,), device=env.unwrapped.device).item()
-        
-        # Thank you Sonnet lol
-        # IMPORTANT: Cannot use get_world_poses() here because write_root_pose_to_sim() doesn't
-        # update USD until sim.step(). Instead, manually compute slot positions from local transforms.
-        # Transform slot positions from rack local frame to world frame using the NEW rack pose
-        # For each environment, we need to transform the slot position
-        slot_position_local = slot_positions_local[slot_idx].unsqueeze(0).repeat(len(env_ids), 1)
-        slot_orientation_local = slot_orientations_local[slot_idx].unsqueeze(0).repeat(len(env_ids), 1)
-        
-        # Combine transforms: world_pose = rack_pose ⊕ slot_local_pose
-        slot_position, slot_orientation = math_utils.combine_frame_transforms(
-            new_rack_positions, new_rack_orientations, slot_position_local, slot_orientation_local
-        )
-        # slot_position and slot_orientation are already per-env tensors (shape: len(env_ids), 3/4)
-        slot_pose = torch.cat([slot_position, slot_orientation], dim=-1)
-        vial.write_root_pose_to_sim(slot_pose, env_ids=env_ids)
-
-        zero_velocity = torch.zeros((len(env_ids), 6), device=vial.device)
-        vial.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
-
+    # 2. ターゲット（vial/box）のポーズをランダム化して配置
+    # slot（穴）に入れる処理は削除し、すべて机の上（初期位置付近）に配置します
     pose_range_z_fixed = {**pose_range, "z": (0.0, 0.0)}
     for i, v in enumerate(vial_objects):
-        if i not in placed_on_rack_indices:
-            default_z = v.data.default_root_state[env_ids[0], 2].item()
-            pos_offset = {"z": fixed_vial_z - default_z}
-            _, _ = random_asset_pose(env, env_ids, v, pose_range_z_fixed, pos_offset)
-            zero_velocity = torch.zeros((len(env_ids), 6), device=v.device)
-            v.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+        default_z = v.data.default_root_state[env_ids[0], 2].item()
+        pos_offset = {"z": fixed_vial_z - default_z}
+        _, _ = random_asset_pose(env, env_ids, v, pose_range_z_fixed, pos_offset)
+        zero_velocity = torch.zeros((len(env_ids), 6), device=v.device)
+        v.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
