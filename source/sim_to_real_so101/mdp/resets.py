@@ -387,29 +387,62 @@ def reset_vials_rack(
         env_ids: torch.Tensor,
         vials: list[str],
         rack: str,
-        rack_pose_range: dict[str, tuple[float, float]],
-        pose_range: dict[str, tuple[float, float]],
+        workspace_range: dict[str, tuple[float, float]],
+        min_dist: float,
         fixed_vial_z: float,
-        rack_placement_prob: float = 0.33,  # この変数は使わなくなりますが、引数としては残しておきます
+        fixed_rack_z: float,
 ):
+    vial_objects = [env.scene[asset_name] for asset_name in vials]
+    rack_obj = env.scene[rack]
 
-    vial_objects: list[RigidObject | Articulation] = [
-        env.scene[asset_name] for asset_name in vials
-    ]
+    num_resets = len(env_ids)
+    device = env.unwrapped.device
 
-    rack = env.scene[rack]
-    
-    # 1. 容器（ラック/箱）のポーズをランダム化
-    new_rack_positions, new_rack_orientations = random_asset_pose(env, env_ids, rack, rack_pose_range, {})
-    zero_velocity = torch.zeros((len(env_ids), 6), device=rack.device)
-    rack.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+    # 配置用のテンソルを準備
+    rack_pos = torch.zeros((num_resets, 3), device=device)
+    rack_pos[:, 2] = fixed_rack_z
+    rack_yaw = math_utils.sample_uniform(*workspace_range.get("yaw", (-math.pi, math.pi)), (num_resets,), device=device)
+    rack_quat = math_utils.quat_from_euler_xyz(torch.zeros_like(rack_yaw), torch.zeros_like(rack_yaw), rack_yaw)
 
-    # 2. ターゲット（vial/box）のポーズをランダム化して配置
-    # slot（穴）に入れる処理は削除し、すべて机の上（初期位置付近）に配置します
-    pose_range_z_fixed = {**pose_range, "z": (0.0, 0.0)}
-    for i, v in enumerate(vial_objects):
-        default_z = v.data.default_root_state[env_ids[0], 2].item()
-        pos_offset = {"z": fixed_vial_z - default_z}
-        _, _ = random_asset_pose(env, env_ids, v, pose_range_z_fixed, pos_offset)
-        zero_velocity = torch.zeros((len(env_ids), 6), device=v.device)
-        v.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+    vial_pos = torch.zeros((num_resets, 3), device=device)
+    vial_pos[:, 2] = fixed_vial_z
+    vial_yaw = math_utils.sample_uniform(*workspace_range.get("yaw", (-math.pi, math.pi)), (num_resets,), device=device)
+    vial_quat = math_utils.quat_from_euler_xyz(torch.zeros_like(vial_yaw), torch.zeros_like(vial_yaw), vial_yaw)
+
+    x_min, x_max = workspace_range["x"]
+    y_min, y_max = workspace_range["y"]
+
+    # 重なりを防ぐための再抽選ループ (最大20回試行)
+    max_attempts = 20
+    valid_mask = torch.zeros(num_resets, dtype=torch.bool, device=device)
+
+    for _ in range(max_attempts):
+        if valid_mask.all():
+            break
+
+        # 位置が不正（近すぎる）環境の数
+        num_invalid = (~valid_mask).sum()
+
+        # 無効なものだけ新しくX,Y座標をランダム生成
+        rack_pos[~valid_mask, 0] = math_utils.sample_uniform(x_min, x_max, (num_invalid,), device=device)
+        rack_pos[~valid_mask, 1] = math_utils.sample_uniform(y_min, y_max, (num_invalid,), device=device)
+
+        vial_pos[~valid_mask, 0] = math_utils.sample_uniform(x_min, x_max, (num_invalid,), device=device)
+        vial_pos[~valid_mask, 1] = math_utils.sample_uniform(y_min, y_max, (num_invalid,), device=device)
+
+        # 2つのオブジェクト間の距離を計算
+        dist = torch.norm(rack_pos[:, :2] - vial_pos[:, :2], dim=-1)
+        # min_dist以上離れていればTrue（合格）
+        valid_mask = dist >= min_dist
+
+    # 各環境の原点座標を足し合わせる
+    rack_pos += env.scene.env_origins[env_ids]
+    vial_pos += env.scene.env_origins[env_ids]
+
+    # シミュレータへポーズと速度(0)を書き込み
+    rack_obj.write_root_pose_to_sim(torch.cat([rack_pos, rack_quat], dim=-1), env_ids=env_ids)
+    rack_obj.write_root_velocity_to_sim(torch.zeros(num_resets, 6, device=device), env_ids=env_ids)
+
+    for v in vial_objects:
+        v.write_root_pose_to_sim(torch.cat([vial_pos, vial_quat], dim=-1), env_ids=env_ids)
+        v.write_root_velocity_to_sim(torch.zeros(num_resets, 6, device=device), env_ids=env_ids)

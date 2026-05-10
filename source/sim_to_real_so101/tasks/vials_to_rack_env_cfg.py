@@ -157,7 +157,6 @@ class VialsToRackDRSceneCfg(VialsToRackSceneCfg):
     def __post_init__(self) -> None:
         super().__post_init__()
 
-
 @configclass
 class VialsToRackEventCfg(TaskEventCfg):
     """Configuration for events."""
@@ -166,21 +165,17 @@ class VialsToRackEventCfg(TaskEventCfg):
         func=reset_vials_rack,
         mode="reset",
         params={
-            # "vials": ["vial_1", "vial_2", "vial_3"],
             "vials": ["target_box"],
             "rack": "rack_left",
-            "rack_pose_range": {
-                "x": (-0.04, 0.04),
-                "y": (-0.01, 0.01),
-                "yaw": (-0.5, 0.5),
+            # ベース環境は固定寄りの狭い範囲
+            "workspace_range": {
+                "x": (0.21, 0.25),
+                "y": (-0.05, 0.15),
+                "yaw": (-0.1, 0.1),
             },
-            "pose_range": {
-                "x": (-0.04, 0.04),
-                "y": (-0.01, 0.01),
-                "roll": (-0.3, 0.3),
-                "yaw": (0.0, 0.0),
-            },
-            "fixed_vial_z": 0.05,
+            "min_dist": 0.12,  # 箱と消しゴムの最低距離 (12cm)
+            "fixed_vial_z": BOX_SPAWN_Z,
+            "fixed_rack_z": 0.06,
         },
     )
 
@@ -214,6 +209,24 @@ class VialsToRackEventDRCfg(VialsToRackEventCfg):
     #         "asset_cfg": SceneEntityCfg("mat"),
     #     },
     # )
+    
+    reset_vials_setup = EventTerm(
+        func=reset_vials_rack,
+        mode="reset",
+        params={
+            "vials": ["target_box"],
+            "rack": "rack_left",
+            # DR環境は、壁に当たらない最大範囲 ＆ 360度回転
+            "workspace_range": {
+                "x": (0.16, 0.32),     # 手前〜奥の安全圏
+                "y": (-0.22, 0.22),    # 左右の安全圏
+                "yaw": (-3.1415, 3.1415), # 360度ランダムな向き
+            },
+            "min_dist": 0.15,  # 余裕を持って15cm以上離す
+            "fixed_vial_z": BOX_SPAWN_Z,
+            "fixed_rack_z": 0.06,
+        },
+    )
 
 
 @configclass
