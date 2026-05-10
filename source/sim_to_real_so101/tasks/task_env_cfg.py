@@ -20,7 +20,6 @@ from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab.assets import AssetBaseCfg
-from isaaclab.utils import configclass
 from isaaclab.sensors import TiledCameraCfg
 from isaacsim.core.utils.rotations import euler_angles_to_quat
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
@@ -29,7 +28,6 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from sim_to_real_so101 import assets
 from sim_to_real_so101.mdp import (
     randomize_light_exposure,
-    randomize_sky_light,
     randomize_mat_rotation,
     randomize_camera_focal_length,
     randomize_camera_pose,
@@ -69,16 +67,16 @@ camera_object = TiledCameraCfg(
 
 @configclass
 class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
-    lightstudio = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/LightStudio",
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{assets_path}/usd/lightbox-simple.usd",
-        ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(-0.1, 0, 0.0257)),
-    )
-    lightbox_light = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/LightStudio/LightBox/RectLight"
-    )
+    # lightstudio = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/LightStudio",
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"{assets_path}/usd/lightbox-simple.usd",
+    #     ),
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(-0.1, 0, 0.0257)),
+    # )
+    # lightbox_light = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/LightStudio/LightBox/RectLight",
+    # )
 
     # sky_light = AssetBaseCfg(
     #     prim_path="/World/sky_light",
@@ -90,6 +88,25 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
     #         color_temperature=6500.0
     #     )
     # )
+    # 1. 空間全体を均一に照らす環境光（Dome Light）
+    env_light = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/EnvLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=10.0,  # 全体が明るくなるよう調整（1000〜3000程度）
+            color=(1.0, 1.0, 1.0),
+        ),
+    )
+
+    # 作業スペースの上から照らす Cylinder Light
+    main_light = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/MainLight",
+        spawn=sim_utils.SphereLightCfg(
+            radius=0.1,
+            intensity=5000.0,  # ボックス内の反射を考慮して調整
+            color=(1.0, 1.0, 1.0),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.15, 0.0, 0.45)),
+    )
 
     mat = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/Mat",
@@ -109,20 +126,88 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
     camera_ego.offset.rot = euler_angles_to_quat(np.array([-45, 0, 0]), degrees=True)
 
     camera_external_D455 = camera_object.replace()
-    camera_external_D455.prim_path = "{ENV_REGEX_NS}/LightStudio/LightBox/camera_mount/rsd455/RSD455/Camera_OmniVision_OV9782_Right"
-    camera_external_D455.spawn = None
+    # camera_external_D455.prim_path = "{ENV_REGEX_NS}/LightStudio/LightBox/camera_mount/rsd455/RSD455/Camera_OmniVision_OV9782_Right"
+    camera_external_D455.prim_path = "{ENV_REGEX_NS}/ExternalCamera"
+    camera_external_D455.offset.pos = (0.27, 0.35, 0.40)
+    camera_external_D455.offset.rot = euler_angles_to_quat(
+        np.array([0, 45, -128]), degrees=True
+    )
+    # camera_external_D455.spawn = None
+
+    # 1. 床面 (底板)
+    box_floor = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Box_Floor",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.508, 0.762, 0.005),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(
+            pos=(0.15, 0.0, 0.025)
+        ),  # 床の上面がロボット底面に近づくように調整
+    )
+
+    # 2. 背面の壁 (30" x 20")
+    box_back = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Box_BackWall",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.005, 0.762, 0.508),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(
+            pos=(0.4065, 0.0, 0.284)
+        ),  # 床の奥側エッジに合わせて配置
+    )
+
+    # 3. 左側の壁 (20" x 20")
+    box_left = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Box_LeftWall",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.508, 0.005, 0.508),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.15, 0.381, 0.284)),
+    )
+
+    # 4. 右側の壁 (20" x 20")
+    box_right = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Box_RightWall",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.508, 0.005, 0.508),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.15, -0.381, 0.284)),
+    )
+
+    # 5. 天井 (30" x 20")
+    box_ceiling = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/Box_Ceiling",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.508, 0.762, 0.005),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.15, 0.0, 0.5405)),
+    )
 
 
 @configclass
 class TaskEventCfg(EventCfg):
     """Configuration for events."""
 
-    reset_lightbox_light_exposure = EventTerm(
+    # reset_lightbox_light_exposure = EventTerm(
+    #     func=randomize_light_exposure,
+    #     mode="reset",
+    #     params={
+    #         "exposure_range": (0.0, 0.0),
+    #         "asset_cfg": SceneEntityCfg("lightbox_light"),
+    #     },
+    # )
+
+    reset_main_light_exposure = EventTerm(
         func=randomize_light_exposure,
         mode="reset",
         params={
-            "exposure_range": (-3.0, 1.0),
-            "asset_cfg": SceneEntityCfg("lightbox_light"),
+            "exposure_range": (-3.0, 1.0),  # 違和感があれば変更を加える
+            "asset_cfg": SceneEntityCfg("main_light"),
         },
     )
 
@@ -148,7 +233,7 @@ class TaskEventCfg(EventCfg):
         func=randomize_camera_pose,
         mode="reset",
         params={
-            "prim_path_pattern": "{ENV_REGEX_NS}/LightStudio/LightBox/camera_mount",
+            "prim_path_pattern": "{ENV_REGEX_NS}/ExternalCamera",
             "pos_range": {
                 "x": (-0.02, 0.02),  # ±2cm
                 "y": (-0.02, 0.02),
@@ -165,10 +250,8 @@ class TaskEventCfg(EventCfg):
 
 @configclass
 class TaskObservationsCfg(ObservationsCfg):
-
     @configclass
     class VisualCfg(ObsGroup):
-
         rgb_ego = ObsTerm(
             func=image,
             params={
