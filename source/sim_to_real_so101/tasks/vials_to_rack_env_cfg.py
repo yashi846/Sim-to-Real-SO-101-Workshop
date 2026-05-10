@@ -78,10 +78,10 @@ rack.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.2)
 box = manipulation_object_base.replace()
 box.spawn = sim_utils.CuboidCfg(
     size=(0.065, 0.022, 0.011),  # 6.5 cm x 2.2 cm x 1.1 cm
-    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.5, 0.8)), # 色は青系
-    collision_props=sim_utils.CollisionPropertiesCfg(), # 掴むために当たり判定は必須
-    mass_props=sim_utils.MassPropertiesCfg(mass=0.02),
-    rigid_props=sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 1.0)), 
+    collision_props=sim_utils.CollisionPropertiesCfg(),
+    mass_props=sim_utils.MassPropertiesCfg(mass=0.0198),
+    rigid_props=sim_utils.RigidBodyPropertiesCfg(),
 )
 BOX_SPAWN_Z = 0.05
 
