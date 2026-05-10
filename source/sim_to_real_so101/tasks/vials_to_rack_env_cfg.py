@@ -181,14 +181,14 @@ class VialsToRackEventDRCfg(VialsToRackEventCfg):
         },
     )
 
-    reset_mat_rotation = EventTerm(
-        func=randomize_mat_rotation,
-        mode="reset",
-        params={
-            "yaw_range": (-0.3, 0.3),  # ±17° rotation
-            "asset_cfg": SceneEntityCfg("mat"),
-        },
-    )
+    # reset_mat_rotation = EventTerm(
+    #     func=randomize_mat_rotation,
+    #     mode="reset",
+    #     params={
+    #         "yaw_range": (-0.3, 0.3),  # ±17° rotation
+    #         "asset_cfg": SceneEntityCfg("mat"),
+    #     },
+    # )
 
 
 @configclass

@@ -108,16 +108,16 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.15, 0.0, 0.45)),
     )
 
-    mat = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/Mat",
-        spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{assets_path}/usd/mat.usda",
-        ),
-        init_state=AssetBaseCfg.InitialStateCfg(
-            pos=(0.22, 0, 0.032),
-            rot=euler_angles_to_quat(np.array([0, 0, 90]), degrees=True),
-        ),
-    )
+    # mat = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Mat",
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"{assets_path}/usd/mat.usda",
+    #     ),
+    #     init_state=AssetBaseCfg.InitialStateCfg(
+    #         pos=(0.22, 0, 0.032),
+    #         rot=euler_angles_to_quat(np.array([0, 0, 90]), degrees=True),
+    #     ),
+    # )
 
     # Camera
     camera_ego = camera_object.replace()
@@ -140,6 +140,7 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
         spawn=sim_utils.CuboidCfg(
             size=(0.508, 0.762, 0.005),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(
             pos=(0.15, 0.0, 0.025)
@@ -152,6 +153,7 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
         spawn=sim_utils.CuboidCfg(
             size=(0.005, 0.762, 0.508),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(
             pos=(0.4065, 0.0, 0.284)
@@ -164,6 +166,7 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
         spawn=sim_utils.CuboidCfg(
             size=(0.508, 0.005, 0.508),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.15, 0.381, 0.284)),
     )
@@ -174,6 +177,7 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
         spawn=sim_utils.CuboidCfg(
             size=(0.508, 0.005, 0.508),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.15, -0.381, 0.284)),
     )
@@ -184,6 +188,7 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
         spawn=sim_utils.CuboidCfg(
             size=(0.508, 0.762, 0.005),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9)),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.15, 0.0, 0.5405)),
     )
@@ -211,14 +216,14 @@ class TaskEventCfg(EventCfg):
         },
     )
 
-    reset_mat_rotation = EventTerm(
-        func=randomize_mat_rotation,
-        mode="reset",
-        params={
-            "yaw_range": (-0.1, 0.1),
-            "asset_cfg": SceneEntityCfg("mat"),
-        },
-    )
+    # reset_mat_rotation = EventTerm(
+    #     func=randomize_mat_rotation,
+    #     mode="reset",
+    #     params={
+    #         "yaw_range": (-0.1, 0.1),
+    #         "asset_cfg": SceneEntityCfg("mat"),
+    #     },
+    # )
 
     reset_camera_ego_fov = EventTerm(
         func=randomize_camera_focal_length,
