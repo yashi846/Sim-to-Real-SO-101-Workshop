@@ -60,10 +60,10 @@ manipulation_object_base = RigidObjectCfg(
     ),
 )
 
-vial = manipulation_object_base.replace()
-vial.spawn.usd_path = f"{assets_path}/usd/Vial_opaque.usda"
-vial.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.02)
-vial.spawn.rigid_props = sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0)
+# vial = manipulation_object_base.replace()
+# vial.spawn.usd_path = f"{assets_path}/usd/Vial_opaque.usda"
+# vial.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.02)
+# vial.spawn.rigid_props = sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0)
 
 
 rack = manipulation_object_base.replace()
@@ -71,9 +71,19 @@ rack.prim_path = "{ENV_REGEX_NS}/VialRack"
 rack.spawn.usd_path = f"{assets_path}/usd/Vial_rack_simple.usda"
 rack.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.2)
 
-vial.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.02)
-vial.spawn.rigid_props = sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0)
-VIAL_SPAWN_Z = 0.05
+# vial.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.02)
+# vial.spawn.rigid_props = sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0)
+# VIAL_SPAWN_Z = 0.05
+
+box = manipulation_object_base.replace()
+box.spawn = sim_utils.CuboidCfg(
+    size=(0.065, 0.022, 0.011),  # 6.5 cm x 2.2 cm x 1.1 cm
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.5, 0.8)), # 色は青系
+    collision_props=sim_utils.CollisionPropertiesCfg(), # 掴むために当たり判定は必須
+    mass_props=sim_utils.MassPropertiesCfg(mass=0.02),
+    rigid_props=sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0),
+)
+BOX_SPAWN_Z = 0.05
 
 
 @configclass
@@ -83,21 +93,27 @@ class VialsToRackSceneCfg(SO101TaskSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot"
     )
 
-    vial_1 = vial.replace()
-    vial_1.prim_path = "{ENV_REGEX_NS}/Vial_1"
-    vial_1.init_state.pos = (0.23, -0.08, VIAL_SPAWN_Z)
-    vial_1.init_state.rot = euler_angles_to_quat(np.array([0, 90, 0]), degrees=True)
+    # vial_1 = vial.replace()
+    # vial_1.prim_path = "{ENV_REGEX_NS}/Vial_1"
+    # vial_1.init_state.pos = (0.23, -0.08, VIAL_SPAWN_Z)
+    # vial_1.init_state.rot = euler_angles_to_quat(np.array([0, 90, 0]), degrees=True)
 
-    vial_2 = vial.replace()
-    vial_2.prim_path = "{ENV_REGEX_NS}/Vial_2"
-    vial_2.init_state.pos = (0.23, 0, VIAL_SPAWN_Z)
-    vial_2.init_state.rot = euler_angles_to_quat(np.array([0, 90, 0]), degrees=True)
+    # vial_2 = vial.replace()
+    # vial_2.prim_path = "{ENV_REGEX_NS}/Vial_2"
+    # vial_2.init_state.pos = (0.23, 0, VIAL_SPAWN_Z)
+    # vial_2.init_state.rot = euler_angles_to_quat(np.array([0, 90, 0]), degrees=True)
 
-    vial_3 = vial.replace()
-    vial_3.prim_path = "{ENV_REGEX_NS}/Vial_3"
-    vial_3.init_state.pos = (0.23, -0.16, VIAL_SPAWN_Z)
-    vial_3.init_state.rot = euler_angles_to_quat(np.array([0, 90, 0]), degrees=True)
+    # vial_3 = vial.replace()
+    # vial_3.prim_path = "{ENV_REGEX_NS}/Vial_3"
+    # vial_3.init_state.pos = (0.23, -0.16, VIAL_SPAWN_Z)
+    # vial_3.init_state.rot = euler_angles_to_quat(np.array([0, 90, 0]), degrees=True)
 
+    target_box = box.replace()
+    target_box.prim_path = "{ENV_REGEX_NS}/TargetBox"
+    target_box.init_state.pos = (0.23, 0.0, BOX_SPAWN_Z)
+    target_box.init_state.rot = euler_angles_to_quat(np.array([0, 0, 0]), degrees=True)
+
+    
     rack_left = rack.replace()
     rack_left.prim_path = "{ENV_REGEX_NS}/Rack_Left"
     rack_left.init_state.pos = (0.18, 0.08, 0.06)
@@ -109,9 +125,7 @@ class VialsToRackSceneCfg(SO101TaskSceneCfg):
         history_length=1,
         debug_vis=False,
         filter_prim_paths_expr=[
-            "{ENV_REGEX_NS}/Vial_1",
-            "{ENV_REGEX_NS}/Vial_2",
-            "{ENV_REGEX_NS}/Vial_3",
+            "{ENV_REGEX_NS}/TargetBox"
         ],
     )
 
@@ -141,7 +155,8 @@ class VialsToRackEventCfg(TaskEventCfg):
         func=reset_vials_rack,
         mode="reset",
         params={
-            "vials": ["vial_1", "vial_2", "vial_3"],
+            # "vials": ["vial_1", "vial_2", "vial_3"],
+            "vials": ["target_box"],
             "rack": "rack_left",
             "rack_pose_range": {
                 "x": (-0.04, 0.04),
@@ -203,7 +218,8 @@ class VialsToRackObservationsCfg(TaskObservationsCfg):
             func=any_vial_grasped,
             params={
                 "contact_sensor_cfg": SceneEntityCfg("contact_grasp"),
-                "vials": ["vial_1", "vial_2", "vial_3"],
+                # "vials": ["vial_1", "vial_2", "vial_3"],
+                "vials": ["target_box"],
                 "min_height": 0.055,  # 5.5 cm - check debug output for actual resting height
                 "warmup_steps": 30,
                 "force_threshold": 2,  # N
@@ -214,7 +230,8 @@ class VialsToRackObservationsCfg(TaskObservationsCfg):
             func=vial_placed_on_rack,
             params={
                 "contact_sensor_cfg": SceneEntityCfg("contact_grasp"),
-                "vials": ["vial_1", "vial_2", "vial_3"],
+                # "vials": ["vial_1", "vial_2", "vial_3"],
+                "vials": ["target_box"],
                 "rack_name": "rack_left",
                 "warmup_steps": 30,
                 "grasp_history_window": 20,
@@ -252,7 +269,8 @@ class VialsToRackTerminationsCfg:
         time_out=False,
         params={
             "contact_sensor_cfg": SceneEntityCfg("contact_grasp"),
-            "vials": ["vial_1", "vial_2", "vial_3"],
+            # "vials": ["vial_1", "vial_2", "vial_3"],
+            "vials": ["target_box"],
             "rack_name": "rack_left",
             "warmup_steps": 30,
             "grasp_history_window": 20,
