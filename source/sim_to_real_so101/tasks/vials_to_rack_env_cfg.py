@@ -218,11 +218,11 @@ class VialsToRackEventDRCfg(VialsToRackEventCfg):
             "rack": "rack_left",
             # DR環境は、壁に当たらない最大範囲 ＆ 360度回転
             "workspace_range": {
-                "x": (0.16, 0.32),     # 手前〜奥の安全圏
-                "y": (-0.22, 0.22),    # 左右の安全圏
+                "x": (0.20, 0.28),     # 手前〜奥の安全圏
+                "y": (-0.11, 0.11),    # 左右の安全圏
                 "yaw": (-3.1415, 3.1415), # 360度ランダムな向き
             },
-            "min_dist": 0.15,  # 余裕を持って15cm以上離す
+            "min_dist": 0.12,  # 余裕を持って15cm以上離す
             "fixed_vial_z": BOX_SPAWN_Z,
             "fixed_rack_z": 0.06,
         },
