@@ -49,7 +49,8 @@ camera_object = TiledCameraCfg(
     update_period=0.0,
     height=480,
     width=640,
-    data_types=["rgb", "depth", "instance_id_segmentation_fast"],
+    # data_types=["rgb", "depth", "instance_id_segmentation_fast"],
+    data_types=["rgb"],
     colorize_instance_segmentation=True,
     spawn=sim_utils.PinholeCameraCfg(
         projection_type="pinhole",
@@ -266,22 +267,22 @@ class TaskObservationsCfg(ObservationsCfg):
             },
         )
 
-        depth_ego = ObsTerm(
-            func=image,
-            params={
-                "sensor_cfg": SceneEntityCfg("camera_ego"),
-                "data_type": "depth",
-                # "normalize": False,
-            },
-        )
+        # depth_ego = ObsTerm(
+        #     func=image,
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("camera_ego"),
+        #         "data_type": "depth",
+        #         # "normalize": False,
+        #     },
+        # )
 
-        instance_id_seg_ego = ObsTerm(
-            func=image_raw,
-            params={
-                "sensor_cfg": SceneEntityCfg("camera_ego"),
-                "data_type": "instance_id_segmentation_fast",
-            },
-        )
+        # instance_id_seg_ego = ObsTerm(
+        #     func=image_raw,
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("camera_ego"),
+        #         "data_type": "instance_id_segmentation_fast",
+        #     },
+        # )
 
         rgb_external_D455 = ObsTerm(
             func=image,
@@ -292,22 +293,22 @@ class TaskObservationsCfg(ObservationsCfg):
             },
         )
 
-        depth_external_D455 = ObsTerm(
-            func=image,
-            params={
-                "sensor_cfg": SceneEntityCfg("camera_external_D455"),
-                "data_type": "depth",
-                # "normalize": False,
-            },
-        )
+        # depth_external_D455 = ObsTerm(
+        #     func=image,
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("camera_external_D455"),
+        #         "data_type": "depth",
+        #         # "normalize": False,
+        #     },
+        # )
 
-        instance_id_seg_external_D455 = ObsTerm(
-            func=image_raw,
-            params={
-                "sensor_cfg": SceneEntityCfg("camera_external_D455"),
-                "data_type": "instance_id_segmentation_fast",
-            },
-        )
+        # instance_id_seg_external_D455 = ObsTerm(
+        #     func=image_raw,
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("camera_external_D455"),
+        #         "data_type": "instance_id_segmentation_fast",
+        #     },
+        # )
 
         def __post_init__(self) -> None:
             self.enable_corruption = False

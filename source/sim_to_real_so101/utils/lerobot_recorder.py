@@ -228,7 +228,8 @@ class LeRobotRecorder:
                     device=self.device,
                 )
 
-    def push_frame_to_buffer(self, action, observation, visual_buffers, depth_buffers, instance_id_seg_buffers):
+    # def push_frame_to_buffer(self, action, observation, visual_buffers, depth_buffers, instance_id_seg_buffers):
+    def push_frame_to_buffer(self, action, observation, visual_buffers):
         if self.current_frame >= self.capcity:
             # TODO: extand tensors to increase the buffer capacity if reached
             print(
@@ -247,14 +248,14 @@ class LeRobotRecorder:
                 self.rgb_buffer_tensors[camera_name][self.current_frame] = visual_buffers[
                     camera_name
                 ].clone()
-            if self.depth:
-                self.depth_buffer_tensors[camera_name][self.current_frame] = depth_buffers[
-                    camera_name
-                ].clone()
-            if self.instance_id_seg:
-                self.instance_id_seg_buffers_tensors[camera_name][self.current_frame] = instance_id_seg_buffers[
-                    camera_name
-                ].clone()
+            # if self.depth:
+            #     self.depth_buffer_tensors[camera_name][self.current_frame] = depth_buffers[
+            #         camera_name
+            #     ].clone()
+            # if self.instance_id_seg:
+            #     self.instance_id_seg_buffers_tensors[camera_name][self.current_frame] = instance_id_seg_buffers[
+            #         camera_name
+            #     ].clone()
 
         self.current_frame += 1
 

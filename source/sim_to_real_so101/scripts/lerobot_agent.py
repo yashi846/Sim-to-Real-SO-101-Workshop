@@ -198,15 +198,18 @@ def main():
                 # Extract joint positions from policy observation dict
                 joint_pos_obs = obs["policy"]["joint_pos_obs"][0]
                 visual_obs = obs["visual"]
-                real_obs, visual_buffers, depth_buffers, instance_id_seg_buffers = (
+                # real_obs, visual_buffers, depth_buffers, instance_id_seg_buffers = (
+                #     robot_iface.sim_to_real_dataset_processor(joint_pos_obs, visual_obs)
+                # )
+                real_obs, visual_buffers = (
                     robot_iface.sim_to_real_dataset_processor(joint_pos_obs, visual_obs)
                 )
                 recorder.push_frame_to_buffer(
                     real_action,
                     real_obs,
                     visual_buffers,
-                    depth_buffers,
-                    instance_id_seg_buffers,
+                    # depth_buffers,
+                    # instance_id_seg_buffers,
                 )
 
     env.close()
