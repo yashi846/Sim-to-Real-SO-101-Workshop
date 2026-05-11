@@ -128,9 +128,9 @@ class SO101TaskSceneCfg(LerobotSo101BaseSceneCfg):
     camera_external_D455 = camera_object.replace()
     # camera_external_D455.prim_path = "{ENV_REGEX_NS}/LightStudio/LightBox/camera_mount/rsd455/RSD455/Camera_OmniVision_OV9782_Right"
     camera_external_D455.prim_path = "{ENV_REGEX_NS}/ExternalCamera"
-    camera_external_D455.offset.pos = (0.27, 0.35, 0.40)
+    camera_external_D455.offset.pos = (0, 0.27, 0.40)
     camera_external_D455.offset.rot = euler_angles_to_quat(
-        np.array([0, 45, -128]), degrees=True
+        np.array([45, 0, 180]), degrees=True
     )
     # camera_external_D455.spawn = None
 
